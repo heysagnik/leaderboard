@@ -24,7 +24,7 @@ function App() {
           const response = await databases.listDocuments(
             '6749aaef0034b73295d6',
             '679656b300020ec3e00b',
-            [Query.orderAsc('timestamp'), Query.limit(limit), Query.offset(offset)]
+            [Query.orderDesc('timestamp'), Query.limit(limit), Query.offset(offset)]
           );
 
           console.log(`Fetched documents (offset ${offset}):`, response.documents);
