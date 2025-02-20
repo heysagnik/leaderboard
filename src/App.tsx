@@ -1,48 +1,62 @@
-import { useState, useEffect } from 'react'
-import { Client, Databases, Query } from 'appwrite'
-import './App.css'
+import { useState, useEffect } from 'react';
+import { Client, Databases, Query } from 'appwrite';
+import './App.css';
 
 function App() {
-  const [aggregatedScores, setAggregatedScores] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [aggregatedScores, setAggregatedScores] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const client = new Client()
           .setEndpoint('https://cloud.appwrite.io/v1')
-          .setProject('6749aac90038687908b7')
+          .setProject('6749aac90038687908b7');
+        const databases = new Databases(client);
 
-        const databases = new Databases(client)
-        const response = await databases.listDocuments(
-          '6749aaef0034b73295d6',
-          '679656b300020ec3e00b',
-          [Query.orderDesc('timestamp')]
-        )
+        let teamScores: { [key: string]: number } = {};
+        let offset = 0;
+        const limit = 500; // Adjust the limit as needed
+        let hasMore = true;
 
-        const teamScores: { [key: string]: number } = {}
-        response.documents.forEach(doc => {
-          const team = doc.team_name || 'Unknown'
-          const points = Number(doc.points_awarded) || 0
-          teamScores[team] = (teamScores[team] || 0) + points
-        })
+        while (hasMore) {
+          const response = await databases.listDocuments(
+            '6749aaef0034b73295d6',
+            '679656b300020ec3e00b',
+            [Query.orderDesc('timestamp'), Query.limit(limit), Query.offset(offset)]
+          );
+
+          console.log(`Fetched documents (offset ${offset}):`, response.documents);
+
+          response.documents.forEach(doc => {
+            const team = doc.team_name || 'Unknown';
+            const points = Number(doc.points_awarded) || 0;
+            teamScores[team] = (teamScores[team] || 0) + points;
+          });
+
+          offset += limit;
+          hasMore = response.documents.length === limit;
+        }
+
+        console.log('Aggregated team scores:', teamScores);
 
         const aggregated = Object.entries(teamScores)
           .map(([team_name, score]) => ({ team_name, score }))
-          .sort((a, b) => b.score - a.score)
-        
-        setAggregatedScores(aggregated)
-        setIsLoading(false)
-      } catch (err) {
-        setError('Failed to load leaderboard data')
-        setIsLoading(false)
-        console.error('Error:', err)
-      }
-    }
+          .sort((a, b) => b.score - a.score);
 
-    fetchData()
-  }, [])
+        console.log('Final aggregated scores:', aggregated);
+
+        setAggregatedScores(aggregated);
+        setIsLoading(false);
+      } catch (err) {
+        setError('Failed to load leaderboard data');
+        setIsLoading(false);
+        console.error('Error:', err);
+      }
+    };
+    fetchData();
+  }, []);
 
   if (error) {
     return (
@@ -50,7 +64,7 @@ function App() {
         <h1 className="title">Error</h1>
         <p className="error-message">{error}</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -69,9 +83,9 @@ function App() {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i}>
-                  <td><div className="skeleton" style={{height: "24px"}}/></td>
-                  <td><div className="skeleton" style={{height: "24px"}}/></td>
-                  <td><div className="skeleton" style={{height: "24px"}}/></td>
+                  <td><div className="skeleton" style={{ height: "24px" }} /></td>
+                  <td><div className="skeleton" style={{ height: "24px" }} /></td>
+                  <td><div className="skeleton" style={{ height: "24px" }} /></td>
                 </tr>
               ))
             ) : (
